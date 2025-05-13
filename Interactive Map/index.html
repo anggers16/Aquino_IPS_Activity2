@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indigenous Communities & Challenges</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+        }
+        
+        #map-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        #map {
+            flex: 3;
+            height: 100%;
+        }
+        
+        #sidebar {
+            flex: 1;
+            padding: 20px;
+            background-color: #f8f9fa;
+            overflow-y: auto;
+            max-width: 400px;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+        }
+        
+        .indigenous-marker {
+            background-size: cover;
+            border-radius: 50%;
+            border: 2px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            text-shadow: 0 0 3px rgba(0,0,0,0.8);
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+        
+        .legend {
+            padding: 10px 15px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            line-height: 1.6;
+        }
+        
+        .legend h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .legend-color {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 1px solid #555;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 1.4em;
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e74c3c;
+        }
+        
+        .filter-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .filter-section h3 {
+            margin-top: 0;
+            font-size: 1.1em;
+            color: #2c3e50;
+        }
+        
+        .filter-option {
+            margin-bottom: 8px;
+        }
+        
+        .community-info {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .community-info.active {
+            display: block;
+        }
+        
+        .community-info h2 {
+            margin-top: 0;
+            color: #e74c3c;
+            font-size: 1.3em;
+        }
+        
+        .community-photo {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        
+        .challenge-tag {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            color: white;
+        }
+        
+        .learn-more-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .learn-more-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .community-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .stat-item {
+            background: #f0f0f0;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        
+        .stat-item strong {
+            display: block;
+            color: #e74c3c;
+        }
+        
+        @media (max-width: 768px) {
+            #map-container {
+                flex-direction: column;
+            }
+            #map {
+                height: 60vh;
+            }
+            #sidebar {
+                max-width: 100%;
+                height: 40vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="map-container">
+        <div id="map"></div>
+        <div id="sidebar">
+            <h1>Indigenous Communities & Challenges</h1>
+            
+            <div class="filter-section">
+                <h3>Filter by Challenge Type</h3>
+                <div class="filter-option">
+                    <input type="checkbox" id="land-filter" class="challenge-filter" value="land" checked>
+                    <label for="land-filter">Land Rights</label>
+                </div>
+                <div class="filter-option">
+                    <input type="checkbox" id="culture-filter" class="challenge-filter" value="culture" checked>
+                    <label for="culture-filter">Cultural Preservation</label>
+                </div>
+                <div class="filter-option">
+                    <input type="checkbox" id="climate-filter" class="challenge-filter" value="climate" checked>
+                    <label for="climate-filter">Climate Change</label>
+                </div>
+                <div class="filter-option">
+                    <input type="checkbox" id="health-filter" class="challenge-filter" value="health" checked>
+                    <label for="health-filter">Health Disparities</label>
+                </div>
+            </div>
+            
+            <div id="community-info-container">
+                <!-- Lumad People -->
+                <div class="community-info" data-community="lumad">
+                    <h2>Lumad Peoples</h2>
+                    <img src="lumad.jpg" class="community-photo" alt="Lumad community">
+                    <div class="community-stats">
+                        <div class="stat-item">
+                            <strong>Location</strong>
+                            Mindanao, Philippines
+                        </div>
+                        <div class="stat-item">
+                            <strong>Population</strong>
+                            ~2 million
+                        </div>
+                        <div class="stat-item">
+                            <strong>Language Groups</strong>
+                            18+ languages
+                        </div>
+                    </div>
+                    <div>
+                        <span class="challenge-tag" style="background-color: #e74c3c;">Land Rights</span>
+                        <span class="challenge-tag" style="background-color: #3498db;">Cultural Preservation</span>
+                        <span class="challenge-tag" style="background-color: #f39c12;">Health Disparities</span>
+                    </div>
+                    <h3>Key Challenges</h3>
+                    <ul>
+                        <li>Forced displacement due to armed conflict</li>
+                        <li>Militarization of ancestral domains</li>
+                        <li>School closures affecting indigenous education</li>
+                        <li>Large-scale mining and logging operations</li>
+                    </ul>
+                    <h3>Cultural Highlights</h3>
+                    <ul>
+                        <li>Diverse ethnolinguistic groups with unique traditions</li>
+                        <li>Rich oral literature and epic poems</li>
+                        <li>Sustainable agricultural practices</li>
+                        <li>Traditional governance systems</li>
+                    </ul>
+                    <button class="learn-more-btn">Learn More</button>
+                </div>
+                
+                <!-- Igorot People -->
+                <div class="community-info" data-community="igorot">
+                    <h2>Igorot Peoples</h2>
+                    <img src="igorot.jpeg" class="community-photo" alt="Igorot people">
+                    <div class="community-stats">
+                        <div class="stat-item">
+                            <strong>Location</strong>
+                            Cordillera, Philippines
+                        </div>
+                        <div class="stat-item">
+                            <strong>Population</strong>
+                            ~1.5 million
+                        </div>
+                        <div class="stat-item">
+                            <strong>Main Groups</strong>
+                            Bontoc, Kankanaey, Ibaloi, Ifugao
+                        </div>
+                    </div>
+                    <div>
+                        <span class="challenge-tag" style="background-color: #e74c3c;">Land Rights</span>
+                        <span class="challenge-tag" style="background-color: #3498db;">Cultural Preservation</span>
+                        <span class="challenge-tag" style="background-color: #2ecc71;">Climate Change</span>
+                    </div>
+                    <h3>Key Challenges</h3>
+                    <ul>
+                        <li>Mining threats to watersheds and rice terraces</li>
+                        <li>Commercialization of cultural heritage</li>
+                        <li>Loss of traditional farming knowledge</li>
+                        <li>Land conversion for commercial use</li>
+                    </ul>
+                    <h3>Cultural Highlights</h3>
+                    <ul>
+                        <li>World-famous rice terraces (UNESCO site)</li>
+                        <li>Traditional woven textiles and tattoos</li>
+                        <li>Complex irrigation systems</li>
+                        <li>Unique burial customs and rituals</li>
+                    </ul>
+                    <button class="learn-more-btn">Learn More</button>
+                </div>
+                
+                <!-- Aeta People -->
+                <div class="community-info" data-community="aeta">
+                    <h2>Aeta People</h2>
+                    <img src="aeta.jpg" class="community-photo" alt="Aeta People">
+                    <div class="community-stats">
+                        <div class="stat-item">
+                            <strong>Location</strong>
+                            Luzon, Philippines
+                        </div>
+                        <div class="stat-item">
+                            <strong>Population</strong>
+                            ~50,000-60,000
+                        </div>
+                        <div class="stat-item">
+                            <strong>Ancestry</strong>
+                            Among earliest inhabitants
+                        </div>
+                    </div>
+                    <div>
+                        <span class="challenge-tag" style="background-color: #e74c3c;">Land Rights</span>
+                        <span class="challenge-tag" style="background-color: #f39c12;">Health Disparities</span>
+                        <span class="challenge-tag" style="background-color: #2ecc71;">Climate Change</span>
+                    </div>
+                    <h3>Key Challenges</h3>
+                    <ul>
+                        <li>Displacement after Mt. Pinatubo eruption</li>
+                        <li>High infant mortality and malnutrition</li>
+                        <li>Limited access to healthcare</li>
+                        <li>Discrimination and stereotyping</li>
+                    </ul>
+                    <h3>Cultural Highlights</h3>
+                    <ul>
+                        <li>Traditional hunter-gatherer lifestyle</li>
+                        <li>Expertise in jungle survival</li>
+                        <li>Rich oral traditions and herbal medicine</li>
+                        <li>Distinct musical traditions</li>
+                    </ul>
+                    <button class="learn-more-btn">Learn More</button>
+                </div>
+                
+                <!-- Yanomami People -->
+                <div class="community-info" data-community="yanomami">
+                    <h2>Yanomami People</h2>
+                    <img src="Yanomami People.jpg" class="community-photo" alt="Yanomami children">
+                    <div class="community-stats">
+                        <div class="stat-item">
+                            <strong>Location</strong>
+                            Amazon Rainforest
+                        </div>
+                        <div class="stat-item">
+                            <strong>Population</strong>
+                            ~35,000
+                        </div>
+                        <div class="stat-item">
+                            <strong>Countries</strong>
+                            Brazil & Venezuela
+                        </div>
+                    </div>
+                    <div>
+                        <span class="challenge-tag" style="background-color: #e74c3c;">Land Rights</span>
+                        <span class="challenge-tag" style="background-color: #f39c12;">Health Disparities</span>
+                    </div>
+                    <h3>Key Challenges</h3>
+                    <ul>
+                        <li>Illegal gold mining on their lands</li>
+                        <li>Mercury poisoning from mining</li>
+                        <li>Malaria and other disease outbreaks</li>
+                        <li>Deforestation and habitat loss</li>
+                    </ul>
+                    <h3>Cultural Highlights</h3>
+                    <ul>
+                        <li>Traditional semi-nomadic lifestyle</li>
+                        <li>Shamanic traditions and spiritual practices</li>
+                        <li>Communal yano (roundhouse) dwellings</li>
+                        <li>Complex kinship systems</li>
+                    </ul>
+                    <button class="learn-more-btn">Learn More</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Initialize the map centered on Southeast Asia
+        const map = L.map('map').setView([12, 122], 4);
+        
+        // Add OpenStreetMap base layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // Create layer groups for different challenge types
+        const landRightsLayer = L.layerGroup();
+        const cultureLayer = L.layerGroup();
+        const climateLayer = L.layerGroup();
+        const healthLayer = L.layerGroup();
+        
+        // Color coding for challenge types
+        const challengeColors = {
+            land: '#e74c3c',
+            culture: '#3498db',
+            climate: '#2ecc71',
+            health: '#f39c12'
+        };
+        
+        // Indigenous communities data
+        const communities = [
+            // Philippine Indigenous Groups
+            {
+                id: "lumad",
+                name: "Lumad",
+                lat: 7.5,
+                lng: 125.5,
+                challenges: ["land", "culture", "health"],
+                population: "~2 million",
+                region: "Mindanao, Philippines"
+            },
+            {
+                id: "igorot",
+                name: "Igorot",
+                lat: 16.5,
+                lng: 120.8,
+                challenges: ["land", "culture", "climate"],
+                population: "~1.5 million",
+                region: "Cordillera, Philippines"
+            },
+            {
+                id: "aeta",
+                name: "Aeta",
+                lat: 15.3,
+                lng: 120.4,
+                challenges: ["land", "health", "climate"],
+                population: "~50,000",
+                region: "Luzon, Philippines"
+            },
+            // International Indigenous Groups
+            {
+                id: "yanomami",
+                name: "Yanomami",
+                lat: 1.0,
+                lng: -63.0,
+                challenges: ["land", "health"],
+                population: "~35,000",
+                region: "Amazon Rainforest"
+            },
+            {
+                id: "maasai",
+                name: "Maasai",
+                lat: -2,
+                lng: 36,
+                challenges: ["land", "culture"],
+                population: "~1.5 million",
+                region: "Kenya/Tanzania"
+            },
+            {
+                id: "sami",
+                name: "Sámi",
+                lat: 68,
+                lng: 20,
+                challenges: ["culture", "climate"],
+                population: "~80,000",
+                region: "Northern Europe"
+            },
+            {
+                id: "aboriginal",
+                name: "Aboriginal",
+                lat: -23,
+                lng: 133,
+                challenges: ["land", "health", "culture"],
+                population: "~800,000",
+                region: "Australia"
+            }
+        ];
+        
+        // Create markers for each community
+        communities.forEach(community => {
+            // Determine primary challenge for marker color
+            const primaryChallenge = community.challenges[0];
+            const markerColor = challengeColors[primaryChallenge];
+            
+            const marker = L.marker([community.lat, community.lng], {
+                icon: L.divIcon({
+                    className: 'indigenous-marker',
+                    html: community.name.charAt(0),
+                    iconSize: [30, 30],
+                    style: `background-color: ${markerColor}`
+                }),
+                challenges: community.challenges,
+                communityId: community.id
+            });
+            
+            // Create popup content
+            const popupContent = `
+                <div style="max-width: 200px">
+                    <h3 style="margin:5px 0;color:${markerColor}">${community.name}</h3>
+                    <p style="margin:5px 0"><strong>Region:</strong> ${community.region}</p>
+                    <p style="margin:5px 0"><strong>Population:</strong> ${community.population}</p>
+                    <p style="margin:5px 0"><em>Click for details</em></p>
+                </div>
+            `;
+            
+            marker.bindPopup(popupContent);
+            
+            // Add click event to show info in sidebar
+            marker.on('click', function() {
+                showCommunityInfo(community.id);
+            });
+            
+            // Add to appropriate layers based on challenges
+            community.challenges.forEach(challenge => {
+                switch(challenge) {
+                    case 'land':
+                        marker.addTo(landRightsLayer);
+                        break;
+                    case 'culture':
+                        marker.addTo(cultureLayer);
+                        break;
+                    case 'climate':
+                        marker.addTo(climateLayer);
+                        break;
+                    case 'health':
+                        marker.addTo(healthLayer);
+                        break;
+                }
+            });
+        });
+        
+        // Add all layers to map initially
+        landRightsLayer.addTo(map);
+        cultureLayer.addTo(map);
+        climateLayer.addTo(map);
+        healthLayer.addTo(map);
+        
+        // Create legend
+        const legend = L.control({position: 'bottomright'});
+        legend.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = `
+                <h4>Challenge Types</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #e74c3c"></div>
+                    <span>Land Rights</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #3498db"></div>
+                    <span>Cultural Preservation</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #2ecc71"></div>
+                    <span>Climate Change</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #f39c12"></div>
+                    <span>Health Disparities</span>
+                </div>
+            `;
+            return div;
+        };
+        legend.addTo(map);
+        
+        // Filter functionality
+        document.querySelectorAll('.challenge-filter').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const challengeType = this.value;
+                const isChecked = this.checked;
+                
+                // Show/hide markers with this challenge type
+                [landRightsLayer, cultureLayer, climateLayer, healthLayer].forEach(layer => {
+                    layer.eachLayer(marker => {
+                        if (marker.options.challenges.includes(challengeType)) {
+                            if (isChecked) {
+                                map.addLayer(marker);
+                            } else {
+                                // Only remove if no other active challenges apply
+                                const hasActiveChallenge = marker.options.challenges.some(ch => 
+                                    document.getElementById(`${ch}-filter`).checked
+                                );
+                                if (!hasActiveChallenge) {
+                                    map.removeLayer(marker);
+                                }
+                            }
+                        }
+                    });
+                });
+            });
+        });
+        
+        // Show community info in sidebar
+        function showCommunityInfo(communityId) {
+            document.querySelectorAll('.community-info').forEach(info => {
+                info.classList.remove('active');
+            });
+            document.querySelector(`.community-info[data-community="${communityId}"]`).classList.add('active');
+        }
+        
+        // Learn more button functionality
+        document.querySelectorAll('.learn-more-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const communityId = this.closest('.community-info').dataset.community;
+                const community = communities.find(c => c.id === communityId);
+                alert(`This would link to more detailed information about the ${community.name} people.\n\nIn a full implementation, this could open a new page with:\n- Historical background\n- Current advocacy efforts\n- How to support\n- Related organizations`);
+            });
+        });
+        
+        // Initialize with first community visible
+        showCommunityInfo('lumad');
+    </script>
+</body>
+</html>
